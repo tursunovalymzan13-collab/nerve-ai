@@ -1,0 +1,9 @@
+# NERVE AI - Зависимости
+
+flask>=3.0.0
+flask-cors>=4.0.0
+gunicorn>=21.2.0
+
+# Ваш ai_assistant использует:
+# (установите если ещё нет)
+colorama>=0.4.6
