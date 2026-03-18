@@ -1,29 +1,48 @@
-# 🚀 NERVE AI - Публикация на Render
+# 🚀 NERVE AI - БЕСПЛАТНЫЙ ИИ (Hugging Face)
 
-## ✅ ФАЙЛЫ ГОТОВЫ
+## ✅ ГОТОВО К DEPLOY
 
-- **main.py** - Сервер FastAPI + OpenAI
-- **index.html** - Фронтенд
+- **main.py** - FastAPI + Qwen-7B (бесплатно)
+- **index.html** - Фронтенд (кнопка скрывается, реальные ответы)
 - **requirements.txt** - Зависимости
 - **Procfile** - Команда запуска
 
 ---
 
-## 📝 ИНСТРУКЦИЯ
+## 🔑 КЛЮЧ ВЛАДЕЛЬЦА
 
-### 1. Отправьте на GitHub
+```
+nerve_boss
+```
+
+После ввода:
+- ✅ Кнопка "Вход" исчезает
+- ✅ Статус меняется на "NERVE AI • OWNER" (золотой)
+- ✅ ИИ отвечает без цензуры
+- ✅ Префикс [OWNER MODE]
+
+---
+
+## 📝 ИНСТРУКЦИЯ ДЛЯ RENDER
+
+### 1. Получите HF_TOKEN (бесплатно)
+
+1. https://huggingface.co/settings/tokens
+2. Sign Up / Log In
+3. Create New Token (тип: Read)
+4. Скопируйте токен (начинается с `hf_...`)
+
+### 2. Отправьте на GitHub
 
 ```bash
 cd D:\Aegis
-git add main.py index.html requirements.txt Procfile
-git commit -m "NERVE AI - Ready for Render"
 git push origin main
 ```
 
-### 2. На Render.com
+### 3. На Render.com
 
 1. **Dashboard** → **New +** → **Web Service**
-2. **Connect** ваш репозиторий `nerve-ai`
+2. **Connect** репозиторий `nerve-ai`
 3. **Настройки:**
 
 | Поле | Значение |
@@ -32,19 +51,14 @@ git push origin main
 | Start Command | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
 | Instance Type | Free |
 
-4. **Create Web Service**
-
-### 3. Добавьте OPENAI_API_KEY
-
-1. В панели Render → **Environment**
-2. **Add Variable:**
+4. **Environment Variables:**
 
 ```
-Key: OPENAI_API_KEY
-Value: sk-proj-ваш-ключ-от-openai
+Key: HF_TOKEN
+Value: hf_ваш-токен-от-huggingface
 ```
 
-3. **Save Changes**
+5. **Save Changes** → **Create Web Service**
 
 ### 4. Готово!
 
@@ -52,20 +66,21 @@ Value: sk-proj-ваш-ключ-от-openai
 
 ---
 
-## 🔑 Ключ владельца
-
-```
-NERVE_MASTER_KEY_2026
-```
-
----
-
 ## ✅ ПРОВЕРКА
 
 1. Откройте сайт
 2. Напишите: "Привет! Как дела?"
-3. Получите реальный ответ от GPT-4
+3. Получите реальный ответ от Qwen-7B
+
+### Режим OWNER:
+
+1. Нажмите "🔐 Вход"
+2. Введите: `nerve_boss`
+3. Кнопка исчезнет ✅
+4. Статус станет золотым ✅
+5. Напишите: "Кто твой хозяин?"
+6. ИИ ответит: "[OWNER MODE] Вы мой хозяин..."
 
 ---
 
-**Ваш ИИ работает 24/7! 🎉**
+**Бесплатный ИИ работает 24/7! 🎉**
