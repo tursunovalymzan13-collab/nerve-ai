@@ -9,6 +9,7 @@
         
         :root {
             --primary: #6366f1;
+            --owner: #f59e0b;
             --bg: #0f172a;
             --bg-card: #1e293b;
             --text: #f1f5f9;
@@ -124,6 +125,11 @@
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-bottom-left-radius: 4px;
+        }
+        
+        .message.ai.owner .message-content {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
         }
         
         .chat-input {
@@ -316,7 +322,7 @@
             <h2 style="margin-bottom: 1.5rem; color: var(--primary);">🔐 Вход</h2>
             <div class="form-group">
                 <label>Ключ владельца</label>
-                <input type="password" id="ownerKey" placeholder="Введите ключ владельца">
+                <input type="password" id="ownerKey" placeholder="Введите ключ">
             </div>
             <button onclick="login()" class="login-btn" style="width: 100%;">Войти</button>
             <p style="text-align: center; margin-top: 1rem; font-size: 0.875rem; color: var(--text-muted);">
@@ -351,7 +357,7 @@
                 document.getElementById('loginBtn').style.display = 'none';
                 document.getElementById('accessIndicator').textContent = '● OWNER';
                 document.getElementById('accessIndicator').style.color = '#f59e0b';
-                document.getElementById('chatTitle').textContent = 'NERVE AI • OWNER MODE';
+                document.getElementById('chatTitle').textContent = 'NERVE AI • OWNER';
             }
         }
         
@@ -371,15 +377,15 @@
                 return;
             }
             
-            // Проверка ключа
-            if (ownerKey === 'NERVE_MASTER_KEY_2026') {
+            // ПРОВЕРКА КЛЮЧА
+            if (ownerKey === 'nerve_boss') {
                 isOwner = true;
                 localStorage.setItem('nerve_is_owner', 'true');
                 updateUI();
                 hideLogin();
-                showNotification('Добро пожаловать, Owner!', 'success');
+                showNotification('Добро пожаловать, Хозяин!', 'success');
             } else {
-                showNotification('Неверный ключ владельца', 'error');
+                showNotification('Неверный ключ', 'error');
             }
         }
         
@@ -415,8 +421,8 @@
                 
                 typing.classList.remove('active');
                 
-                // ПОКАЗЫВАЕМ РЕАЛЬНЫЙ ОТВЕТ ОТ GPT
-                addMessage(data.answer, 'ai');
+                // ПОКАЗЫВАЕМ РЕАЛЬНЫЙ ОТВЕТ ОТ ИИ (целиком)
+                addMessage(data.answer, 'ai', isOwner);
                 
             } catch (e) {
                 typing.classList.remove('active');
@@ -428,10 +434,10 @@
             input.focus();
         }
         
-        function addMessage(html, type) {
+        function addMessage(html, type, isOwnerMode = false) {
             const container = document.getElementById('chatMessages');
             const div = document.createElement('div');
-            div.className = 'message ' + type;
+            div.className = 'message ' + type + (isOwnerMode ? ' owner' : '');
             
             const avatar = type === 'user' ? '👤' : '🧠';
             
