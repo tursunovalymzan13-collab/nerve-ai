@@ -1,10 +1,11 @@
 """
 NERVE AI - Сервер для Render.com
-Интеграция с OpenAI GPT-4
+FastAPI + OpenAI + Статика
 """
 
 import os
 from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import openai
@@ -27,6 +28,16 @@ client = openai.OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 class ChatRequest(BaseModel):
     message: str
     is_owner: bool = False
+
+# ============================================================================
+# СТАТИКА
+# ============================================================================
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    """Главная страница - отдаёт index.html"""
+    with open("index.html", "r", encoding="utf-8") as f:
+        return f.read()
 
 # ============================================================================
 # API ЭНДПОИНТЫ
@@ -77,12 +88,6 @@ async def chat(req: ChatRequest):
         return {"answer": f"⚠️ Ошибка API: {str(e)}"}
 
 
-@app.get("/")
-async def root():
-    """Главная страница"""
-    return {"status": "NERVE AI Server is running", "openai": "configured" if client else "not configured"}
-
-
 @app.get("/health")
 async def health():
     """Проверка здоровья"""
@@ -90,3 +95,8 @@ async def health():
         "status": "healthy",
         "openai": "configured" if client else "not configured"
     }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=5000)
