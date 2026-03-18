@@ -57,3 +57,6 @@ start https://github.com/new
 echo 🌐 GitHub открыт в браузере!
 echo.
 pause
+
+echo.
+pause
