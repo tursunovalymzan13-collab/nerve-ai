@@ -1,1 +1,1 @@
-web: gunicorn public_server:app --bind 0.0.0.0:10000 --workers 4
+web: uvicorn main:app --host 0.0.0.0 --port $PORT

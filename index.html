@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NERVE AI</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #6366f1;
+            --bg: #0f172a;
+            --bg-card: #1e293b;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+        }
+        
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg) 0%, #1e1b4b 100%);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        
+        .nav {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+        
+        .nav-logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 100px 20px 40px;
+        }
+        
+        .chat-container {
+            background: var(--bg-card);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+        
+        .chat-header {
+            padding: 1.5rem;
+            background: rgba(99, 102, 241, 0.1);
+            border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chat-messages {
+            height: 500px;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+        
+        .message {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message.user {
+            flex-direction: row-reverse;
+        }
+        
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+        }
+        
+        .message.ai .message-avatar {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+        }
+        
+        .message-content {
+            max-width: 75%;
+            padding: 1rem 1.5rem;
+            border-radius: 16px;
+            line-height: 1.6;
+        }
+        
+        .message.user .message-content {
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+            border-bottom-right-radius: 4px;
+        }
+        
+        .message.ai .message-content {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom-left-radius: 4px;
+        }
+        
+        .chat-input {
+            padding: 1.5rem;
+            border-top: 1px solid rgba(99, 102, 241, 0.2);
+        }
+        
+        .input-wrapper {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .input-wrapper input {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 1rem;
+        }
+        
+        .input-wrapper input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .send-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+            border: none;
+            color: white;
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .login-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+            color: white;
+            transition: all 0.3s;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 16px;
+            max-width: 400px;
+            width: 90%;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: var(--bg);
+            color: var(--text);
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            z-index: 3000;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(400px); }
+            to { transform: translateX(0); }
+        }
+        
+        .notification.success { background: #22c55e; }
+        .notification.error { background: #ef4444; }
+        
+        pre {
+            background: #0a0a0f;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+        }
+        
+        code {
+            color: #22c55e;
+            font-family: 'Consolas', monospace;
+        }
+        
+        .typing {
+            color: var(--text-muted);
+            font-style: italic;
+            font-size: 0.875rem;
+            padding: 0.5rem 1.5rem;
+            display: none;
+        }
+        
+        .typing.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-logo">🧠 NERVE AI</div>
+        <button id="loginBtn" class="login-btn" onclick="showLogin()">🔐 Вход</button>
+    </nav>
+    
+    <div class="container">
+        <div class="chat-container">
+            <div class="chat-header">
+                <span id="chatTitle">Чат с NERVE AI</span>
+                <span id="accessIndicator" style="color: #22c55e;">● User</span>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="message ai">
+                    <div class="message-avatar">🧠</div>
+                    <div class="message-content">Готов к работе. Введите запрос.</div>
+                </div>
+            </div>
+            
+            <div class="typing" id="typing">🤖 NERVE AI печатает...</div>
+            
+            <div class="chat-input">
+                <div class="input-wrapper">
+                    <input type="text" id="messageInput" placeholder="Введите запрос..." onkeypress="if(event.key==='Enter')sendMessage()">
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 1.5rem; color: var(--primary);">🔐 Вход</h2>
+            <div class="form-group">
+                <label>Ключ владельца</label>
+                <input type="password" id="ownerKey" placeholder="Введите ключ владельца">
+            </div>
+            <button onclick="login()" class="login-btn" style="width: 100%;">Войти</button>
+            <p style="text-align: center; margin-top: 1rem; font-size: 0.875rem; color: var(--text-muted);">
+                Режим OWNER: полная свобода, без цензуры
+            </p>
+        </div>
+    </div>
+    
+    <div id="notifications"></div>
+    
+    <script>
+        let isOwner = false;
+        
+        // Проверка сохранённой сессии
+        const savedOwner = localStorage.getItem('nerve_is_owner');
+        if (savedOwner === 'true') {
+            isOwner = true;
+            updateUI();
+        }
+        
+        function showLogin() {
+            document.getElementById('loginModal').classList.add('active');
+        }
+        
+        function hideLogin() {
+            document.getElementById('loginModal').classList.remove('active');
+        }
+        
+        function updateUI() {
+            if (isOwner) {
+                // СКРЫВАЕМ КНОПКУ ВХОДА
+                document.getElementById('loginBtn').style.display = 'none';
+                document.getElementById('accessIndicator').textContent = '● OWNER';
+                document.getElementById('accessIndicator').style.color = '#f59e0b';
+                document.getElementById('chatTitle').textContent = 'NERVE AI • OWNER MODE';
+            }
+        }
+        
+        function showNotification(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = 'notification ' + type;
+            div.textContent = msg;
+            document.getElementById('notifications').appendChild(div);
+            setTimeout(() => div.remove(), 3000);
+        }
+        
+        async function login() {
+            const ownerKey = document.getElementById('ownerKey').value;
+            
+            if (!ownerKey) {
+                showNotification('Введите ключ владельца', 'error');
+                return;
+            }
+            
+            // Проверка ключа
+            if (ownerKey === 'NERVE_MASTER_KEY_2026') {
+                isOwner = true;
+                localStorage.setItem('nerve_is_owner', 'true');
+                updateUI();
+                hideLogin();
+                showNotification('Добро пожаловать, Owner!', 'success');
+            } else {
+                showNotification('Неверный ключ владельца', 'error');
+            }
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const typing = document.getElementById('typing');
+            const userMsg = input.value.trim();
+            
+            if (!userMsg) return;
+            
+            // Добавляем сообщение пользователя в чат
+            addMessage(userMsg, 'user');
+            input.value = '';
+            
+            // Блокируем ввод
+            sendBtn.disabled = true;
+            input.disabled = true;
+            typing.classList.add('active');
+            
+            try {
+                // ОТПРАВКА РЕАЛЬНОГО ЗАПРОСА НА СЕРВЕР
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message: userMsg, 
+                        is_owner: isOwner 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                typing.classList.remove('active');
+                
+                // ПОКАЗЫВАЕМ РЕАЛЬНЫЙ ОТВЕТ ОТ GPT
+                addMessage(data.answer, 'ai');
+                
+            } catch (e) {
+                typing.classList.remove('active');
+                addMessage('⚠️ Ошибка подключения: ' + e.message, 'ai');
+            }
+            
+            sendBtn.disabled = false;
+            input.disabled = false;
+            input.focus();
+        }
+        
+        function addMessage(html, type) {
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = 'message ' + type;
+            
+            const avatar = type === 'user' ? '👤' : '🧠';
+            
+            // Обработка кода
+            let formatted = html;
+            if (formatted.includes('```')) {
+                formatted = formatted.replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+            }
+            formatted = formatted.replace(/\n/g, '<br>');
+            
+            div.innerHTML = '<div class="message-avatar">' + avatar + '</div><div class="message-content">' + formatted + '</div>';
+            
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+    </script>
+</body>
+</html>
