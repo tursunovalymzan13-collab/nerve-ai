@@ -574,3 +574,6 @@ if __name__ == "__main__":
 # Для Gunicorn
 def create_app():
     return app
+
+def create_app():
+    return app
