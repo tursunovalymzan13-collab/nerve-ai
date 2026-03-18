@@ -1,0 +1,21 @@
+        async function login() {
+            const ownerKey = document.getElementById('ownerKey').value;
+            
+            console.log('Введён ключ:', ownerKey);
+            
+            if (!ownerKey) {
+                showNotification('Введите ключ владельца', 'error');
+                return;
+            }
+            
+            // ПРОВЕРКА КЛЮЧА - nerve_boss
+            if (ownerKey === 'nerve_boss') {
+                isOwner = true;
+                localStorage.setItem('nerve_is_owner', 'true');
+                updateUI();
+                hideLogin();
+                showNotification('Добро пожаловать, Хозяин!', 'success');
+            } else {
+                showNotification('Неверный ключ: ' + ownerKey, 'error');
+            }
+        }
