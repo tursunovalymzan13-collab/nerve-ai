@@ -1,13 +1,7 @@
 #!/usr/bin/env python3
 """
 NERVE AI - Публичный сервер для хостинга
-Использует ВАШ собственный ИИ (ai_assistant), а не OpenAI
-
-Запуск:
-    python public_server.py
-
-Для хостинга (Render, Railway):
-    gunicorn public_server:app --bind 0.0.0.0:$PORT
+Использует ВАШ собственный ИИ (ai_assistant.ai_core)
 """
 
 import os
@@ -28,27 +22,24 @@ from flask_cors import CORS
 
 # Импорт ВАШЕГО ИИ-ассистента
 try:
-    from ai_assistant.interfaces import OwnerInterface, UserInterface, SafetyFilter
+    from ai_assistant.ai_core import AIAssistant
+    from ai_assistant.interfaces import SafetyFilter
     AI_AVAILABLE = True
-    logger = logging.getLogger(__name__)
-    logger.info("✅ ai_assistant загружен")
-except ImportError:
+    print("✅ ai_assistant загружен")
+except ImportError as e:
     AI_AVAILABLE = False
-    print("⚠️  ai_assistant не найден! Используем заглушку.")
+    print(f"⚠️  ai_assistant не найден: {e}")
 
 # ============================================================================
 # КОНФИГУРАЦИЯ
 # ============================================================================
 
-# Ключ владельца (измените в production!)
 OWNER_KEY = os.getenv("OWNER_KEY", "NERVE_MASTER_KEY_2026")
 
-# Пути
 BASE_DIR = Path(__file__).parent
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
 
-# Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -67,6 +58,8 @@ class State:
         self.logs: List[Dict] = []
         self.users: Dict[str, Dict] = {}
         self.sessions: Dict[str, Dict] = {}
+        self.ai = AIAssistant() if AI_AVAILABLE else None
+        self.safety = SafetyFilter() if AI_AVAILABLE else None
     
     def add_log(self, user_id: str, req: str, resp: str, level: str, blocked: bool = False):
         self.logs.append({
@@ -89,65 +82,6 @@ class State:
         }
 
 state = State()
-
-# ============================================================================
-# ИИ АССИСТЕНТ (ВАШ)
-# ============================================================================
-
-class AIAssistant:
-    """Обёртка для вашего ИИ-ассистента"""
-    
-    def __init__(self):
-        self.owner_interface = None
-        self.user_interface = None
-        self.safety_filter = SafetyFilter() if AI_AVAILABLE else None
-    
-    def get_response(self, user_input: str, access_level: str) -> str:
-        """
-        Получить ответ от ВАШЕГО ИИ
-        
-        Args:
-            user_input: Текст от пользователя (из request.body)
-            access_level: 'owner' или 'user'
-        
-        Returns:
-            Ответ ИИ
-        """
-        if not AI_AVAILABLE:
-            return self._fallback_response(user_input)
-        
-        try:
-            if access_level == "owner":
-                # ВЛАДЕЛЕЦ - без ограничений
-                if not self.owner_interface:
-                    self.owner_interface = OwnerInterface("owner_web", OWNER_KEY)
-                
-                result = self.owner_interface.process_request(user_input)
-                return result.get("response", result.get("message", str(result)))
-            
-            else:
-                # ПОЛЬЗОВАТЕЛЬ - с Safety Filter
-                if not self.user_interface:
-                    self.user_interface = UserInterface("user_web")
-                
-                # Проверка безопасности
-                is_safe, reason = self.safety_filter.check_request(user_input)
-                if not is_safe:
-                    return f"⛔ Запрос заблокирован: {reason}"
-                
-                result = self.user_interface.process_request(user_input)
-                return result.get("response", result.get("message", str(result)))
-                
-        except Exception as e:
-            logger.error(f"AI error: {e}")
-            return f"⚠️ Ошибка ИИ: {str(e)}"
-    
-    def _fallback_response(self, user_input: str) -> str:
-        """Заглушка если ИИ недоступен"""
-        return f"[DEMO] Ваш запрос: {user_input}\n\nai_assistant не загружен."
-
-# Создаём экземпляр
-ai_assistant = AIAssistant()
 
 # ============================================================================
 # ПРИЛОЖЕНИЕ
@@ -460,7 +394,7 @@ HTML_TEMPLATE = """
         
         async function sendMessage() {
             const input = document.getElementById('messageInput');
-            const user_input = input.value.trim();  // РЕАЛЬНЫЙ ВВОД
+            const user_input = input.value.trim();
             if (!user_input) return;
             
             addMessage(user_input, 'user');
@@ -577,16 +511,9 @@ def api_login():
 
 @app.route('/api/chat', methods=['POST'])
 def api_chat():
-    """
-    ЧАТ С ИИ - ИСПОЛЬЗУЕТ ВАШ ai_assistant
-    
-    Принимает: user_input из request.body
-    Отправляет: в ВАШ ИИ (OwnerInterface/UserInterface)
-    Возвращает: ответ от вашего ИИ
-    """
-    # ПОЛУЧЕНИЕ ДАННЫХ
+    """ЧАТ С ИИ - ИСПОЛЬЗУЕТ ВАШ ai_core.AIAssistant"""
     data = request.json
-    user_input = data.get('message', '')  # РЕАЛЬНЫЙ ТЕКСТ
+    user_input = data.get('message', '')
     
     if not user_input:
         return jsonify({'error': 'Пустой запрос'}), 400
@@ -594,26 +521,36 @@ def api_chat():
     # УРОВЕНЬ ДОСТУПА
     token = request.headers.get('Authorization', '').replace('Bearer ', '')
     access_level = 'user'
+    user_id = 'anonymous'
     
     if token in state.sessions:
         access_level = state.sessions[token].get('access_level', 'user')
+        user_id = state.sessions[token].get('user_id', 'anonymous')
+    
+    # ПРОВЕРКА БЕЗОПАСНОСТИ (только для пользователей)
+    if access_level == 'user' and state.safety_mode and state.safety:
+        is_safe, reason = state.safety.check_request(user_input)
+        if not is_safe:
+            state.add_log(user_id, user_input, 'BLOCKED', access_level, blocked=True)
+            return jsonify({
+                'response': '⛔ Запрос заблокирован',
+                'blocked': True,
+                'block_reason': reason
+            })
     
     # ПОЛУЧЕНИЕ ОТВЕТА ОТ ВАШЕГО ИИ
-    response = ai_assistant.get_response(user_input, access_level)
+    if state.ai and AI_AVAILABLE:
+        response = state.ai.process_message(user_input)
+    else:
+        response = f"⚠️ ИИ не загружен. Ваш запрос: {user_input}"
     
     # ЛОГИРОВАНИЕ
-    state.add_log(
-        user_id=token or 'anonymous',
-        req=user_input,
-        resp=response,
-        level=access_level,
-        blocked='⛔' in response
-    )
+    state.add_log(user_id, user_input, response, access_level, blocked=False)
     
     return jsonify({
         'response': response,
         'access_level': access_level,
-        'blocked': '⛔' in response
+        'blocked': False
     })
 
 
@@ -636,15 +573,11 @@ if __name__ == "__main__":
     print(f"""
 ╔══════════════════════════════════════════════════════════════════╗
 ║                    NERVE AI Server                               ║
-║              Использует ВАШ ai_assistant                         ║
+║              Использует ВАШ ai_core.AIAssistant                  ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  🌐 Порт: {port}                                                   ║
-║  🤖 ИИ: ai_assistant (Owner/User Interface)                      ║
+║  🤖 ИИ: ai_core.AIAssistant (Ваш собственный)                    ║
 ║  🔑 Owner Key: {OWNER_KEY} ║
-╠══════════════════════════════════════════════════════════════════╣
-║  Режимы:                                                         ║
-║  • User: с Safety Filter                                         ║
-║  • Owner: БЕЗ ограничений                                        ║
 ╚══════════════════════════════════════════════════════════════════╝
     """)
     
